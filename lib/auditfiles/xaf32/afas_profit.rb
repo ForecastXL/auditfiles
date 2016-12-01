@@ -38,7 +38,7 @@ module Auditfiles
 
         # Create parser
         parser = SaxStream::Parser.new(collector, [Auditfile, Header, Company, Relation, Ledger,
-          Transaction, TransactionLine])
+                                                   Transaction, TransactionLine])
 
         # Start parsing as a stream
         parser.parse_stream(File.open(@document_path))

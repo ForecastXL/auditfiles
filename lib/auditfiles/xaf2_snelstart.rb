@@ -67,7 +67,7 @@ module Auditfiles
 
       map :transaction_id, to: 'transactionID'
       map :description, to: 'description'
-      # map :period, to: 'period'
+      map :period, to: 'period'
       map :transaction_date, to: 'transactionDate', as: Date
 
       relate :transaction_lines, to: 'line', as: [TransactionLine], parent_collects: true
