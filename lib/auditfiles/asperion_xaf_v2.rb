@@ -3,9 +3,9 @@ module Auditfiles
     class LedgerType
       def self.parse(account_type)
         case account_type
-        when *%w(1 3 4 6 7 8 13 14)
+        when '1', '3', '4', '6', '7', '8', '13', '14'
           'B'
-        when *%w(2 9 10 12 15)
+        when '2', '9', '10', '12', '15'
           'P'
         else
           ''

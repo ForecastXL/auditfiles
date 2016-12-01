@@ -1,12 +1,11 @@
 module Auditfiles
   class ImuisXafV2 < XafV2
-
     class LedgerType
       def self.parse(string)
         case string
-        when *%w(A P)
+        when 'A', 'P'
           'B'
-        when *%w(B L)
+        when 'B', 'L'
           'P'
         else
           ''
@@ -17,7 +16,7 @@ module Auditfiles
     # Convert to currency amount
     class Amount
       def self.parse(string)
-        string = string || '0'
+        string ||= '0'
         string.to_d
       end
     end
@@ -71,7 +70,7 @@ module Auditfiles
       map :period, to: 'period'
       map :transaction_date, to: 'transactionDate', as: Date
 
-      relate :transaction_lines, to: 'line', as: [TransactionLine], :parent_collects => true
+      relate :transaction_lines, to: 'line', as: [TransactionLine], parent_collects: true
     end
 
     class Relation
@@ -162,6 +161,5 @@ module Auditfiles
     #     end
     #   end
     # end
-
   end
 end

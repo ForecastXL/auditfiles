@@ -2,7 +2,7 @@ module Auditfiles
   # Read header from all kinds of XML and ADF files
   class GenericHeader
     def self.determine(document_path)
-      self.new(document_path).read_header
+      new(document_path).read_header
     end
 
     def initialize(document_path)
@@ -21,7 +21,7 @@ module Auditfiles
     ### ADF types
 
     def read_adf_header
-      text = File.open(@document_path, "r:ISO-8859-1:UTF-8").read
+      text = File.open(@document_path, 'r:ISO-8859-1:UTF-8').read
       parse_header_line(text.lines.first)
     end
 
@@ -44,7 +44,7 @@ module Auditfiles
         header[:total_debit]         = parse_amount(line[242...258].strip)
         header[:total_credit]        = parse_amount(line[258...278].strip)
       rescue
-        raise "Error in ADF header"
+        raise 'Error in ADF header'
       end
 
       header
@@ -65,7 +65,6 @@ module Auditfiles
         Date.strptime(date, '%d%m%Y')
       end
     end
-
 
     ### XAF types
 

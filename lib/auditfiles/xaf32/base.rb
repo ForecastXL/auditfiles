@@ -5,7 +5,7 @@ module Auditfiles
         @document_path = document_path
       end
 
-      def read(&block)
+      def read
         # Pass each collected tag to the block
         products = []
         projects = []
@@ -17,42 +17,42 @@ module Auditfiles
           if obj_class == 'Header'
             fiscal_year = obj['fiscal_year']
             obj['product_version'] = '' unless obj['product_version']
-            block.call(obj_class, obj.attributes)
+            yield(obj_class, obj.attributes)
           elsif obj_class == 'Transaction'
             # Add info to transaction lines and extract other dimensions
             obj.relations['transaction_lines'].each do |line|
               line['period'] = obj['period']
-              line['debit_amount'] = line['amount_type'].upcase == 'D' ? line['amount'] : 0
-              line['credit_amount'] = line['amount_type'].upcase == 'C' ? line['amount'] : 0
+              line['debit_amount'] = line['amount_type'].casecmp('D').zero? ? line['amount'] : 0
+              line['credit_amount'] = line['amount_type'].casecmp('C').zero? ? line['amount'] : 0
               line['year'] = fiscal_year ? fiscal_year : line['effective_date'].year.to_s
 
               products << { product_id: line['product_id'] }
               projects << { project_id: line['project_id'] }
               departments << { department_id: line['department_id'] }
 
-              block.call('TransactionLine', line.attributes)
+              yield('TransactionLine', line.attributes)
             end
           else
-            block.call(obj_class, obj.attributes)
+            yield(obj_class, obj.attributes)
           end
         end
 
         # Create parser
         parser = SaxStream::Parser.new(collector, [Auditfile, Header, Company, Relation, Ledger,
-          Transaction, TransactionLine])
+                                                   Transaction, TransactionLine])
 
         # Start parsing as a stream
         parser.parse_stream(File.open(@document_path))
 
         # Pass other dimensions to block
         products.uniq.each do |product|
-          block.call('Product', product)
+          yield('Product', product)
         end
         projects.uniq.each do |project|
-          block.call('Project', project)
+          yield('Project', project)
         end
         departments.uniq.each do |department|
-          block.call('Department', department)
+          yield('Department', department)
         end
 
         true
@@ -61,9 +61,9 @@ module Auditfiles
       class LedgerType
         def self.parse(value)
           case value
-          when *%w(B BAL Balans A BAS Blns Activa Passiva)
+          when 'B', 'BAL', 'Balans', 'A', 'BAS', 'Blns', 'Activa', 'Passiva'
             'B'
-          when *%w(P R V/W W/V W PNL V\ W W\ V L Winst\ &amp;\ verlies Winst\ &\ verlies WenV Kosten Opbrengsten)
+          when 'P', 'R', 'V/W', 'W/V', 'W', 'PNL', 'V W', 'W V', 'L', 'Winst &amp; verlies', 'Winst & verlies', 'WenV', 'Kosten', 'Opbrengsten'
             'P'
           else
             ''
@@ -77,7 +77,7 @@ module Auditfiles
         #   (value || '0').gsub(/[,\.]/, '').to_i / 100.0
         # end
         def self.parse(string)
-          string = string || '0'
+          string ||= '0'
           if string.index(/[,\.]/)
             string.gsub(/[,\.]/, '').to_i / 100.0
           else
@@ -142,7 +142,7 @@ module Auditfiles
         map :amount_type, to: 'amntTp'
         map :sourceID, to: 'sourceID'
 
-        relate :transaction_lines, to: 'trLine', as: [TransactionLine], :parent_collects => true
+        relate :transaction_lines, to: 'trLine', as: [TransactionLine], parent_collects: true
       end
 
       class Ledger

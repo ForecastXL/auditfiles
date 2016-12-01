@@ -3,34 +3,37 @@ module Auditfiles
     # FIXME: ledgers do not get created in import_data
     # FIXME: accounts do not get created in import_data
     # Kleisteen doesn't give the account type, it just gives repeats the account_id
-    def parse_account_type(type)
+    def parse_account_type(_type)
       nil
     end
 
     # FIXME: 1 empty project gets created in import_data
     def parse_projects(data)
       data.map do |transaction|
+        next if transaction[:project_id].blank?
         {
           project_id: transaction[:project_id]
-        } unless transaction[:project_id].blank?
+        }
       end.compact.uniq
     end
 
     # FIXME: 1 empty department gets created in import_data
     def parse_departments(data)
       data.map do |transaction|
+        next if transaction[:department_id].blank?
         {
           department_id: transaction[:department_id]
-        } unless transaction[:department_id].blank?
+        }
       end.compact.uniq
     end
 
     # FIXME: 1 empty product gets created in import_data
     def parse_products(data)
       data.map do |transaction|
+        next if transaction[:product_id].blank?
         {
           product_id: transaction[:product_id]
-        } unless transaction[:product_id].blank?
+        }
       end.compact.uniq
     end
 
@@ -62,11 +65,8 @@ module Auditfiles
           period
         elsif period.to_i > 12
           12
-        else
-          nil
         end
       end
     end
-
   end
 end

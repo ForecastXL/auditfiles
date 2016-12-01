@@ -2,7 +2,6 @@ module Auditfiles
   # Multivers allows for duplicate relation codes for Creditors and Debtors.
   # So we append the relation_type to the relation_code.
   class MultiversAdfV1 < AdfV1
-
     def extract_relation(parsed_line)
       {
         relation_id: "#{parsed_line[:relation_id]}#{parsed_line[:relation_type]}",

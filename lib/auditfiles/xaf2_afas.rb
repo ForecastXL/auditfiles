@@ -4,7 +4,7 @@ module Auditfiles
       @document_path = document_path
     end
 
-    def read(&block)
+    def read
       # Pass each collected tag to the block
       products = []
       projects = []
@@ -17,7 +17,7 @@ module Auditfiles
         when 'Header'
           fiscal_year = obj['fiscal_year']
           obj['product_version'] ||= ''
-          block.call(obj_class, obj.attributes)
+          yield(obj_class, obj.attributes)
         when 'Transaction'
           # Add info to transaction lines and extract other dimensions
           obj.relations['transaction_lines'].each do |line|
@@ -34,32 +34,32 @@ module Auditfiles
             projects << { project_id: line['project_id'] }
             departments << { department_id: line['cost_id'] }
 
-            block.call('TransactionLine', line.attributes)
+            yield('TransactionLine', line.attributes)
           end
         else
-          block.call(obj_class, obj.attributes)
+          yield(obj_class, obj.attributes)
         end
       end
 
       # Create parser
       parser = SaxStream::Parser.new(collector, [self.class::Auditfile,
-        self.class::Header, self.class::Relation, self.class::Ledger,
-        self.class::Transaction, self.class::TransactionLine])
+                                                 self.class::Header, self.class::Relation, self.class::Ledger,
+                                                 self.class::Transaction, self.class::TransactionLine])
 
       # Start parsing as a stream
       parser.parse_stream(File.open(@document_path))
 
       # Pass other dimensions to block
       products.uniq.each do |product|
-        block.call('Product', product)
+        yield('Product', product)
       end
 
       projects.uniq.each do |project|
-        block.call('Project', project)
+        yield('Project', project)
       end
 
       departments.uniq.each do |department|
-        block.call('Department', department)
+        yield('Department', department)
       end
 
       true
@@ -68,9 +68,9 @@ module Auditfiles
     class LedgerType
       def self.parse(string)
         case string
-        when *%w(B BAL Balans A BAS Blns Activa Passiva Debiteur Crediteur)
+        when 'B', 'BAL', 'Balans', 'A', 'BAS', 'Blns', 'Activa', 'Passiva', 'Debiteur', 'Crediteur'
           'B'
-        when *%w(P R V/W W/V W PNL V\ W W\ V L Winst\ &amp;\ verlies Winst\ &\ verlies WenV Kosten Opbrengsten Resultaten)
+        when 'P', 'R', 'V/W', 'W/V', 'W', 'PNL', 'V\ W', 'W\ V', 'L', 'Winst\ &amp;\ verlies', 'Winst\ &\ verlies', 'WenV', 'Kosten', 'Opbrengsten', 'Resultaten'
           'P'
         else
           ''

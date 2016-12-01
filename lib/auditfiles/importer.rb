@@ -12,7 +12,7 @@
 #
 module Auditfiles
   class Importer
-    def read(&block)
+    def read
       raise 'Not implemented'
     end
   end

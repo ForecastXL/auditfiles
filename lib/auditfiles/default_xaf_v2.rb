@@ -1,12 +1,11 @@
 module Auditfiles
   class DefaultXafV2 < XafV2
-
     class LedgerType
       def self.parse(string)
         case string
-        when *%w(B BAL Balans A BAS Blns Activa Passiva Debiteur Crediteur)
+        when 'B', 'BAL', 'Balans', 'A', 'BAS', 'Blns', 'Activa', 'Passiva', 'Debiteur', 'Crediteur'
           'B'
-        when *%w(P R V/W W/V W PNL V\ W W\ V L Winst\ &amp;\ verlies Winst\ &\ verlies WenV Kosten Opbrengsten Resultaten)
+        when 'P', 'R', 'V/W', 'W/V', 'W', 'PNL', 'V W', 'W V', 'L', 'Winst &amp; verlies', 'Winst & verlies', 'WenV', 'Kosten', 'Opbrengsten', 'Resultaten'
           'P'
         else
           ''

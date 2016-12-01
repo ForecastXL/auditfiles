@@ -1,7 +1,6 @@
 # Fixes for Auditfiles from Snelstart.
 module Auditfiles
   class AdfSnelstart < Adf
-
     # Transactions that are not associated to a relation do not leave their relation_id blank but
     # fill the empty space with '0's. When a relation_id is found where all chars are '0' then it
     # assumed not be a valid relation_id and it is subsistuded for an empty string.

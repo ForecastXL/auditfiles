@@ -1,6 +1,5 @@
 module Auditfiles
   class AdfV1 < Importer
-
     def initialize(document_path)
       @document_path = document_path
       @relations = []
@@ -18,14 +17,14 @@ module Auditfiles
 
     # Only parse header
     def parse_header
-      text = File.open(@document_path, "r:ISO-8859-1:UTF-8").read
+      text = File.open(@document_path, 'r:ISO-8859-1:UTF-8').read
       @header = parse_header_line(text.lines.first)
     end
 
-    def read(&block)
+    def read
       lineno = 0
-      text = File.open(@document_path, "r:ISO-8859-1:UTF-8").read
-      text.each_line(sep="\r\n") do |line|
+      text = File.open(@document_path, 'r:ISO-8859-1:UTF-8').read
+      text.each_line(sep = "\r\n") do |line|
         # print line
         if lineno == 0
           @header = parse_header_line(line)
@@ -33,7 +32,7 @@ module Auditfiles
           # Deze pakketten gebruiken blijkbaar kwartalen ipv maanden
           @uses_quarters = /iMuis/.match(@header['product_id'])
 
-          block.call('Header', @header)
+          yield('Header', @header)
         else
           parsed_line = parse_line(line)
           @relations << extract_relation(parsed_line)
@@ -44,25 +43,25 @@ module Auditfiles
           # @transactions << extract_transaction(parsed_line)
           @journals << extract_journal(parsed_line)
 
-          block.call('TransactionLine', extract_transaction(parsed_line))
+          yield('TransactionLine', extract_transaction(parsed_line))
         end
         lineno += 1
       end
 
       @relations.compact.reject { |e| e[:relation_name].empty? }.uniq.each do |obj|
-        block.call('Relation', obj)
+        yield('Relation', obj)
       end
       @products.compact.reject { |e| e[:product_id].empty? }.uniq.each do |obj|
-        block.call('Product', obj)
+        yield('Product', obj)
       end
       @projects.compact.reject { |e| e[:project_id].empty? }.uniq.each do |obj|
-        block.call('Project', obj)
+        yield('Project', obj)
       end
       @departments.compact.reject { |e| e[:department_id].empty? }.uniq.each do |obj|
-        block.call('Department', obj)
+        yield('Department', obj)
       end
       @ledgers.compact.uniq.each do |obj|
-        block.call('Ledger', obj)
+        yield('Ledger', obj)
       end
       # @journals.compact.uniq.each do |obj|
       #   block.call('Product', obj)
@@ -247,8 +246,6 @@ module Auditfiles
           period
         elsif period.to_i > 12
           12
-        else
-          nil
         end
       end
     end
