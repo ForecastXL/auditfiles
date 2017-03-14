@@ -6,7 +6,7 @@ module Auditfiles
         products = []
         projects = []
         departments = []
-        fiscal_year = false
+        fiscal_year = nil
 
         collector = SaxStream::Collectors::BlockCollector.new do |obj|
           obj_class = obj.class.name.split('::').last
@@ -21,8 +21,8 @@ module Auditfiles
               line['effective_date'] = obj['transaction_date'] if obj['period'] == '0'
 
               line['period'] = obj['period']
-              line['debit_amount'] = line['amount_type'].casecmp('D').zero? ? line['amount'] : 0
-              line['credit_amount'] = line['amount_type'].casecmp('C').zero? ? line['amount'] : 0
+              line['debit_amount'] = line['amount_type'].casecmp('d').zero? ? line['amount'] : 0
+              line['credit_amount'] = line['amount_type'].casecmp('c').zero? ? line['amount'] : 0
               line['year'] = fiscal_year || line['effective_date'].year.to_s
 
               products << { product_id: line['product_id'] }

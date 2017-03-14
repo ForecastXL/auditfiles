@@ -2,19 +2,13 @@ module Auditfiles
   class EboekhoudenXafV2 < XafV2
     class LedgerType
       def self.parse(string)
-        case string
-        when 'VW'
-          'P'
-        else
-          'B'
-        end
+        string == 'VW' ? 'P' : 'B'
       end
     end
 
     # Convert to currency amount
     class Amount
       def self.parse(string)
-        string ||= '0'
         string.to_d
       end
     end

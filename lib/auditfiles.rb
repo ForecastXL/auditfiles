@@ -9,6 +9,7 @@ require 'sax_stream/collectors/naive_collector'
 # Require the base files
 require 'auditfiles/version'
 require 'auditfiles/importer'
+require 'auditfiles/xaf'
 require 'auditfiles/xaf_v2'
 require 'auditfiles/adf'
 require 'auditfiles/default_xaf_v2'

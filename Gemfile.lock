@@ -1,0 +1,40 @@
+PATH
+  remote: .
+  specs:
+    auditfiles (0.1.2)
+      activesupport
+      nokogiri
+      nori
+      ox
+      sax_stream
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    activesupport (5.0.0.1)
+      concurrent-ruby (~> 1.0, >= 1.0.2)
+      i18n (~> 0.7)
+      minitest (~> 5.1)
+      tzinfo (~> 1.1)
+    concurrent-ruby (1.0.2)
+    i18n (0.7.0)
+    mini_portile2 (2.1.0)
+    minitest (5.10.1)
+    nokogiri (1.6.8.1)
+      mini_portile2 (~> 2.1.0)
+    nori (2.6.0)
+    ox (2.4.6)
+    sax_stream (1.2.0)
+      nokogiri (>= 1.5.2)
+    thread_safe (0.3.5)
+    tzinfo (1.2.2)
+      thread_safe (~> 0.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  auditfiles!
+
+BUNDLED WITH
+   1.13.6

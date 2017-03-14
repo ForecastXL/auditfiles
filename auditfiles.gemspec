@@ -20,4 +20,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'nokogiri'
   s.add_runtime_dependency 'nori'
   s.add_runtime_dependency 'sax_stream'
+  s.add_runtime_dependency 'ox'
 end

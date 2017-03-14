@@ -70,7 +70,8 @@ module Auditfiles
         case string
         when 'B', 'BAL', 'Balans', 'A', 'BAS', 'Blns', 'Activa', 'Passiva', 'Debiteur', 'Crediteur'
           'B'
-        when 'P', 'R', 'V/W', 'W/V', 'W', 'PNL', 'V\ W', 'W\ V', 'L', 'Winst\ &amp;\ verlies', 'Winst\ &\ verlies', 'WenV', 'Kosten', 'Opbrengsten', 'Resultaten'
+        when 'P', 'R', 'V/W', 'W/V', 'W', 'PNL', 'V W', 'W V', 'L', 'Winst &amp; verlies',
+          'Winst & verlies', 'WenV', 'Kosten', 'Opbrengsten', 'Resultaten'
           'P'
         else
           ''

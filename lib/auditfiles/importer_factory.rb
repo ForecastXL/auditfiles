@@ -38,6 +38,8 @@ module Auditfiles
           case header[:product_id]
           when 'Profit'
             Xaf32::AfasProfit
+          when 'MINOX Software'
+            Xaf32::Minox
           else
             Xaf32::Base
           end
