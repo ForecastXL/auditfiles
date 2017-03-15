@@ -109,12 +109,15 @@ module Auditfiles::Xaf32
         elsif obj_class == 'OpeningBalance'
           obj.relations['opening_balance_lines'].each do |line|
             line['effective_date'] = obj['date']
+            line['year'] = fiscal_year || line['date'].year.to_s
+            line['period'] = '0'
 
             line['debit_amount'] = line['amount_type'].casecmp('d').zero? ? line['amount'] : 0
             line['debit_amount'] = line['debit_amount'].abs if line['debit_amount'].zero?
             line['credit_amount'] = line['amount_type'].casecmp('c').zero? ? line['amount'] : 0
             line['credit_amount'] = line['credit_amount'].abs if line['credit_amount'].zero?
 
+            line['description'] = obj['description']
             yield('TransactionLine', line.attributes)
           end
         elsif obj_class == 'Transaction'
