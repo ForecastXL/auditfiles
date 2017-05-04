@@ -1,213 +1,212 @@
 module Auditfiles
   module Xaf32
-  end
+    class Base
+      def initialize(document_path)
+        @document_path = document_path
+      end
 
-  class Xaf32::Base < Importer
-    def initialize(document_path)
-      @document_path = document_path
-    end
-
-    def read
-      # Pass each collected tag to the block
-      products = []
-      projects = []
-      departments = []
-      fiscal_year = nil
-
-      collector = SaxStream::Collectors::BlockCollector.new do |obj|
-        obj_class = obj.class.name.split('::').last
-        if obj_class == 'Header'
-          fiscal_year = obj['fiscal_year']
-          obj['product_version'] ||= ''
-          yield(obj_class, obj.attributes)
-        elsif obj_class == 'Transaction'
-          # Add info to transaction lines and extract other dimensions
-          obj.relations['transaction_lines'].each do |line|
-            line['period'] = obj['period']
-            line['debit_amount'] = line['amount_type'].casecmp('d').zero? ? line['amount'] : 0
-            line['credit_amount'] = line['amount_type'].casecmp('c').zero? ? line['amount'] : 0
-            line['year'] = fiscal_year ? fiscal_year : line['effective_date'].year.to_s
-
-            products << { product_id: line['product_id'] }
-            projects << { project_id: line['project_id'] }
-            departments << { department_id: line['department_id'] }
-
-            yield('TransactionLine', line.attributes)
+      # Converts all different ledger_types to a standard one.
+      #
+      # Each vendor has its own way of indicating whether a ledger belongs on the balance or on the
+      # profitandloss.
+      class LedgerType
+        # @param value [String] the ledger_type as used by the vendor.
+        # @return [String] 'B' or 'P', raises if not found.
+        def self.parse(value)
+          case value
+          when 'B', 'BAL', 'Balans', 'A', 'BAS', 'Blns', 'Activa', 'Passiva'
+            'B'
+          when 'P', 'R', 'V/W', 'W/V', 'W', 'PNL', 'V W', 'W V', 'L', 'Winst &amp; verlies',
+            'Winst & verlies', 'WenV', 'Kosten', 'Opbrengsten'
+            'P'
+          else
+            raise ArgumentError, "LedgerType is not recognized: #{value}"
           end
-        else
-          yield(obj_class, obj.attributes)
         end
       end
 
-      # Create parser
-      parser = SaxStream::Parser.new(collector, [Auditfile, Header, Company, Relation, Ledger,
-                                                 Period, Transaction, TransactionLine])
-
-      # Start parsing as a stream
-      parser.parse_stream(File.open(@document_path))
-
-      # Pass other dimensions to block
-      products.uniq.each do |product|
-        yield('Product', product)
-      end
-      projects.uniq.each do |project|
-        yield('Project', project)
-      end
-      departments.uniq.each do |department|
-        yield('Department', department)
-      end
-
-      true
-    end
-
-    # Converts all different ledger_types to a standard one.
-    #
-    # Each vendor has its own way of indicating whether a ledger belongs on the balance or on the
-    # profitandloss.
-    class LedgerType
-      # @param value [String] the ledger_type as used by the vendor.
-      # @return [String] 'B' or 'P', raises if not found.
-      def self.parse(value)
-        case value
-        when 'B', 'BAL', 'Balans', 'A', 'BAS', 'Blns', 'Activa', 'Passiva'
-          'B'
-        when 'P', 'R', 'V/W', 'W/V', 'W', 'PNL', 'V W', 'W V', 'L', 'Winst &amp; verlies',
-          'Winst & verlies', 'WenV', 'Kosten', 'Opbrengsten'
-          'P'
-        else
-          raise ArgumentError, "LedgerType is not recognized: #{value}"
+      # Convert to currency amount
+      class Amount
+        # @param value [String] the amount as used by the vendor.
+        # @return [BigDecimal] 'B' or 'P' or raises if not found.
+        def self.parse(string)
+          string ||= '0'
+          if string.index(/[,\.]/)
+            string.gsub(/[,\.]/, '').to_i / 100.0
+          else
+            string.to_d
+          end
         end
       end
-    end
 
-    # Convert to currency amount
-    class Amount
-      # @param value [String] the amount as used by the vendor.
-      # @return [String] 'B' or 'P' or raises if not found.
-      def self.parse(string)
-        string ||= '0'
-        if string.index(/[,\.]/)
-          string.gsub(/[,\.]/, '').to_i / 100.0
-        else
-          string.to_d
+      class RelationType
+        def self.parse(value)
+          value == 'S' ? 'C' : 'D'
         end
       end
-    end
 
-    class RelationType
-      def self.parse(value)
-        value == 'S' ? 'C' : 'D'
+      class Header
+        include SaxStream::Mapper
+
+        node 'header'
+
+        map :fiscal_year, to: 'fiscalYear'
+        map :start_date, to: 'startDate', as: Date
+        map :end_date, to: 'endDate', as: Date
+        map :currency, to: 'curCode'
+        map :date_created, to: 'dateCreated', as: Date
+        map :product_id, to: 'softwareDesc'
+        map :product_version, to: 'softwareVersion'
       end
-    end
 
-    class Header
-      include SaxStream::Mapper
+      class TransactionLine
+        include SaxStream::Mapper
 
-      node 'header'
+        node 'trLine'
 
-      map :fiscal_year, to: 'fiscalYear'
-      map :start_date, to: 'startDate', as: Date
-      map :end_date, to: 'endDate', as: Date
-      map :currency, to: 'curCode'
-      map :date_created, to: 'dateCreated', as: Date
-      map :product_id, to: 'softwareDesc'
-      map :product_version, to: 'softwareVersion'
-    end
+        map :nr, to: 'nr'
+        map :account_id, to: 'accID'
+        map :document_id, to: 'docRef'
+        map :effective_date, to: 'effDate', as: Date
+        map :description, to: 'desc'
+        map :amount, to: 'amnt', as: Amount
+        map :amount_type, to: 'amntTp'
+        map :relation_id, to: 'custSupID'
+        map :invRef, to: 'invRef'
+        map :costID, to: 'costID'
+        map :product_id, to: 'prodID'
+        map :project_id, to: 'projID'
+        map :artGrpID, to: 'artGrpID'
+        map :qntityID, to: 'qntityID'
+        map :qntity, to: 'qntity'
+        map :currencyCode, to: 'currency/curCode'
+        map :currencyAmount, to: 'currency/curAmnt'
+      end
 
-    class TransactionLine
-      include SaxStream::Mapper
+      class Transaction
+        include SaxStream::Mapper
 
-      node 'trLine'
+        node 'transaction'
 
-      map :nr, to: 'nr'
-      map :account_id, to: 'accID'
-      map :document_id, to: 'docRef'
-      map :effective_date, to: 'effDate', as: Date
-      map :description, to: 'desc'
-      map :amount, to: 'amnt', as: Amount
-      map :amount_type, to: 'amntTp'
-      map :relation_id, to: 'custSupID'
-      map :invRef, to: 'invRef'
-      map :costID, to: 'costID'
-      map :product_id, to: 'prodID'
-      map :project_id, to: 'projID'
-      map :artGrpID, to: 'artGrpID'
-      map :qntityID, to: 'qntityID'
-      map :qntity, to: 'qntity'
-      map :currencyCode, to: 'currency/curCode'
-      map :currencyAmount, to: 'currency/curAmnt'
-    end
+        map :nr, to: 'nr'
+        map :description, to: 'desc'
+        map :period, to: 'periodNumber'
+        map :transaction_date, to: 'trDt', as: Date
+        map :amount, to: 'amnt', as: Amount
+        map :amount_type, to: 'amntTp'
+        map :sourceID, to: 'sourceID'
 
-    class Transaction
-      include SaxStream::Mapper
+        relate :transaction_lines, to: 'trLine', as: [TransactionLine], parent_collects: true
+      end
 
-      node 'transaction'
+      class Ledger
+        include SaxStream::Mapper
 
-      map :nr, to: 'nr'
-      map :description, to: 'desc'
-      map :period, to: 'periodNumber'
-      map :transaction_date, to: 'trDt', as: Date
-      map :amount, to: 'amnt', as: Amount
-      map :amount_type, to: 'amntTp'
-      map :sourceID, to: 'sourceID'
+        node 'ledgerAccount'
 
-      relate :transaction_lines, to: 'trLine', as: [TransactionLine], parent_collects: true
-    end
+        map :account_id, to: 'accID'
+        map :account_desc, to: 'accDesc'
+        map :account_type, to: 'accTp', as: LedgerType
+      end
 
-    class Ledger
-      include SaxStream::Mapper
+      class Relation
+        include SaxStream::Mapper
 
-      node 'ledgerAccount'
+        node 'customerSupplier'
 
-      map :account_id, to: 'accID'
-      map :account_desc, to: 'accDesc'
-      map :account_type, to: 'accTp', as: LedgerType
-    end
+        map :relation_id, to: 'custSupID'
+        map :relation_name, to: 'custSupName'
+        map :relation_type, to: 'custSupTp', as: RelationType
+      end
 
-    class Relation
-      include SaxStream::Mapper
+      class Period
+        include SaxStream::Mapper
 
-      node 'customerSupplier'
+        node 'period'
 
-      map :relation_id, to: 'custSupID'
-      map :relation_name, to: 'custSupName'
-      map :relation_type, to: 'custSupTp', as: RelationType
-    end
+        map :period, to: 'periodNumber'
+        map :name, to: 'periodDesc'
+        map :start_date, to: 'startDatePeriod', as: Date
+        map :end_date, to: 'endDatePeriod', as: Date
+      end
 
-    class Period
-      include SaxStream::Mapper
+      class Company
+        include SaxStream::Mapper
 
-      node 'period'
+        node 'company'
 
-      map :period, to: 'periodNumber'
-      map :name, to: 'periodDesc'
-      map :start_date, to: 'startDatePeriod', as: Date
-      map :end_date, to: 'endDatePeriod', as: Date
-    end
+        map :company_ident, to: 'companyIdent'
+        map :company_name, to: 'companyName'
+        map :tax_registration_country, to: 'taxRegistrationCountry'
+        map :tag_reg_ident, to: 'taxRegIdent'
 
-    class Company
-      include SaxStream::Mapper
+        relate :relations, to: 'customersSuppliers/customerSupplier', as: [Relation]
+        relate :ledgers, to: 'generalLedger/ledgerAccount', as: [Ledger]
+        relate :periods, to: 'periods/period', as: [Period]
+        relate :transactions, to: 'transactions/journal/transaction', as: [Transaction]
+      end
 
-      node 'company'
+      class Auditfile
+        include SaxStream::Mapper
 
-      map :company_ident, to: 'companyIdent'
-      map :company_name, to: 'companyName'
-      map :tax_registration_country, to: 'taxRegistrationCountry'
-      map :tag_reg_ident, to: 'taxRegIdent'
+        node 'auditfile'
 
-      relate :relations, to: 'customersSuppliers/customerSupplier', as: [Relation]
-      relate :ledgers, to: 'generalLedger/ledgerAccount', as: [Ledger]
-      relate :periods, to: 'periods/period', as: [Period]
-      relate :transactions, to: 'transactions/journal/transaction', as: [Transaction]
-    end
+        relate :header, to: 'header', as: Header
+        relate :company, to: 'company', as: Company
+      end
 
-    class Auditfile
-      include SaxStream::Mapper
+      def read
+        # Pass each collected tag to the block
+        products = []
+        projects = []
+        departments = []
+        fiscal_year = nil
 
-      node 'auditfile'
+        collector = SaxStream::Collectors::BlockCollector.new do |obj|
+          obj_class = obj.class.name.split('::').last
+          if obj_class == 'Header'
+            fiscal_year = obj['fiscal_year']
+            obj['product_version'] ||= ''
+            yield(obj_class, obj.attributes)
+          elsif obj_class == 'Transaction'
+            # Add info to transaction lines and extract other dimensions
+            obj.relations['transaction_lines'].each do |line|
+              line['period'] = obj['period']
+              line['debit_amount'] = line['amount_type'].casecmp('d').zero? ? line['amount'] : 0
+              line['credit_amount'] = line['amount_type'].casecmp('c').zero? ? line['amount'] : 0
+              line['year'] = fiscal_year || line['effective_date'].year.to_s
 
-      relate :header, to: 'header', as: Header
-      relate :company, to: 'company', as: Company
+              products << { product_id: line['product_id'] }
+              projects << { project_id: line['project_id'] }
+              departments << { department_id: line['department_id'] }
+
+              yield('TransactionLine', line.attributes)
+            end
+          else
+            yield(obj_class, obj.attributes)
+          end
+        end
+
+        # Create parser
+        parser = SaxStream::Parser.new(collector, [Auditfile, Header, Company, Relation, Ledger,
+                                                   Period, Transaction])
+
+        # Start parsing as a stream
+        parser.parse_stream(File.open(@document_path))
+
+        # Pass other dimensions to block
+        products.uniq.each do |product|
+          yield('Product', product)
+        end
+        projects.uniq.each do |project|
+          yield('Project', project)
+        end
+        departments.uniq.each do |department|
+          yield('Department', department)
+        end
+
+        true
+      end
     end
   end
 end

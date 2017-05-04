@@ -10,8 +10,10 @@
 #     Xaf2 (CLAIR2.00.00)
 #     Xaf3
 #
-class Auditfiles::Importer
-  def read
-    raise 'Not implemented'
+module Auditfiles
+  class Importer
+    def read
+      raise 'Not implemented'
+    end
   end
 end

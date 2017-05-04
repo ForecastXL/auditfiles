@@ -23,11 +23,11 @@ GEM
     nokogiri (1.7.1)
       mini_portile2 (~> 2.1.0)
     nori (2.6.0)
-    ox (2.4.11)
+    ox (2.4.13)
     sax_stream (1.2.0)
       nokogiri (>= 1.5.2)
     thread_safe (0.3.6)
-    tzinfo (1.2.2)
+    tzinfo (1.2.3)
       thread_safe (~> 0.1)
 
 PLATFORMS
@@ -37,4 +37,4 @@ DEPENDENCIES
   auditfiles!
 
 BUNDLED WITH
-   1.13.7
+   1.14.6

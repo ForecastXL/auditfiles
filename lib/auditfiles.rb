@@ -8,6 +8,8 @@ require 'sax_stream/collectors/naive_collector'
 
 # Require the base files
 require 'auditfiles/version'
+require 'auditfiles/importer_factory'
+require 'auditfiles/generic_header'
 require 'auditfiles/importer'
 require 'auditfiles/xaf'
 require 'auditfiles/xaf_v2'
